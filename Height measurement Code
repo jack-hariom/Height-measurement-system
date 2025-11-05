@@ -1,0 +1,81 @@
+#include <LiquidCrystal.h>
+
+// === Pin Configuration ===
+const int trigPin = 11;  // Ultrasonic Trigger
+const int echoPin = 10;  // Ultrasonic Echo
+const int buttonPin = 8; // Button to reset reference (zero)
+const int rs = 6, en = 7, d4 = 5, d5 = 4, d6 = 3, d7 = 2; // LCD pins
+
+// === Objects ===
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
+// === Variables ===
+long duration;
+float distance;
+float referenceDistance = 200;  // Height when no one is present
+
+void setup() {
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+  pinMode(buttonPin, INPUT_PULLUP);
+
+  lcd.begin(16, 2);
+  lcd.print("Height Measure");
+  delay(2000);
+  lcd.clear();
+
+  // Initialize reference distance
+  referenceDistance = measureDistance();
+  lcd.print("Ref Set: ");
+  lcd.print(referenceDistance, 1);
+  lcd.print(" cm");
+  delay(2000);
+  lcd.clear();
+}
+
+void loop() {
+  // Check if button is pressed to reset reference
+  if (digitalRead(buttonPin) == LOW) {
+    referenceDistance = measureDistance();
+    lcd.clear();
+    lcd.print("Zeroed @ ");
+    lcd.print(referenceDistance, 1);
+    lcd.print("cm");
+    delay(2000);
+    lcd.clear();
+  }
+
+  // Measure distance
+  distance = measureDistance();
+
+  // Calculate height difference
+  float height = referenceDistance - distance;
+  if (height < 0) height = 0; // avoid negative height
+
+  // Display on LCD
+  lcd.setCursor(0, 0);
+  lcd.print("Dist:");
+  lcd.print(distance, 1);
+  lcd.print("cm  ");
+
+  lcd.setCursor(0, 1);
+  lcd.print("Height:");
+  lcd.print(height, 1);
+  lcd.print("cm   ");
+
+  delay(300);
+}
+
+// === Function to Measure Distance ===
+float measureDistance() {
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  
+  duration = pulseIn(echoPin, HIGH);
+  float dist = duration * 0.0343 / 2; // Convert to cm
+  return dist;
+}
